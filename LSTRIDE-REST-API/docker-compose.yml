@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # 1. คอนเทนเนอร์ฐานข้อมูล PostgreSQL
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: lstride_postgres_container
+    environment:
+      POSTGRES_USER: lstride_user
+      POSTGRES_PASSWORD: lstride_secure_password
+      POSTGRES_DB: lstride_api_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - lstride_db_volume:/var/lib/postgresql/data
+
+  # 2. คอนเทนเนอร์ตัวแอป LSTRIDE-REST-API
+  api_service:
+    build: .
+    container_name: lstride_api_container
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://lstride_user:lstride_secure_password@postgres_db:5432/lstride_api_db?schema=public"
+      PORT: 3000
+    depends_on:
+      - postgres_db
+
+volumes:
+  lstride_db_volume:
