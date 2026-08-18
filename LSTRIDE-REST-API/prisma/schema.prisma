@@ -1,13 +1,362 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  gender           String?
+  password         String?
+  profileImage     String?
+  bio              String?
+  role             UserRole          @default(USER)
+  status           UserStatus        @default(ACTIVE)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  accounts         Account[]
+  activities       ActivityHistory[]
+  bodyProgress     BodyProgress[]
+  clubActivities   ClubActivity[]    @relation("ClubActivityCreator")
+  clubMembers      ClubMember[]
+  createdClubs     Club[]            @relation("ClubCreator")
+  comments         Comment[]
+  following        Follow[]          @relation("follower")
+  followers        Follow[]          @relation("following")
+  likes            Like[]
+  notifications    Notification[]    @relation("NotificationReceiver")
+  posts            Post[]
+  reports          Report[]
+  savedTemplates   SavedTemplate[]
+  workoutTemplates WorkoutTemplate[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refreshToken      String? @map("refresh_token")
+  accessToken       String? @map("access_token")
+  expiresAt         Int?    @map("expires_at")
+  tokenType         String? @map("token_type")
+  scope             String?
+  idToken           String? @map("id_token")
+  sessionState      String? @map("session_state")
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Post {
+  id                String           @id @default(cuid())
+  creatorId         String
+  clubId            String?
+  title             String?
+  content           String
+  image             String?
+  workoutTemplateId String?
+  activityHistoryId String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  comments          Comment[]
+  likes             Like[]
+  activityHistory   ActivityHistory? @relation(fields: [activityHistoryId], references: [id])
+  club              Club?            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  creator           User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  workoutTemplate   WorkoutTemplate? @relation(fields: [workoutTemplateId], references: [id])
+  reports           Report[]
+
+  @@index([creatorId])
+  @@index([clubId])
+  @@index([workoutTemplateId])
+  @@index([activityHistoryId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@map("likes")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  chatId      String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  postId     String
+  reason     String
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  reviewedAt DateTime?
+  post       Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter   User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([reporterId])
+  @@map("reports")
+}
+
+model Club {
+  id            String         @id @default(cuid())
+  creatorId     String
+  name          String
+  description   String?
+  bannerImage   String?
+  profileImage  String?
+  joinPolicy    ClubJoinPolicy @default(OPEN)
+  chatId        String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  activities    ClubActivity[]
+  members       ClubMember[]
+  creator       User           @relation("ClubCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+  posts         Post[]
+
+  @@index([creatorId])
+  @@map("clubs")
+}
+
+model ClubMember {
+  id       String           @id @default(cuid())
+  userId   String
+  clubId   String
+  role     ClubRole         @default(MEMBER)
+  status   ClubMemberStatus @default(ACTIVE)
+  joinedAt DateTime         @default(now())
+  club     Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clubId])
+  @@index([clubId])
+  @@map("club_members")
+}
+
+model ClubActivity {
+  id          String   @id @default(cuid())
+  creatorId   String
+  clubId      String
+  description String
+  scheduledAt DateTime
+  createdAt   DateTime @default(now())
+  club        Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  creator     User     @relation("ClubActivityCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+  @@index([scheduledAt])
+  @@map("club_activities")
+}
+
+model Exercise {
+  id              String                  @id @default(cuid())
+  name            String
+  equipment       String?
+  difficulty      String?
+  movement        String?
+  exerciseType    String?
+  primaryMuscle   String?
+  secondaryMuscle String?
+  exampleImage    String?
+  description     String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  templateDetails WorkoutTemplateDetail[]
+
+  @@index([name])
+  @@map("exercises")
+}
+
+model WorkoutTemplate {
+  id          String                  @id @default(cuid())
+  creatorId   String
+  name        String
+  description String?
+  visibility  Visibility              @default(PRIVATE)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  posts       Post[]
+  savedBy     SavedTemplate[]
+  details     WorkoutTemplateDetail[]
+  creator     User                    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([visibility])
+  @@map("workout_templates")
+}
+
+model WorkoutTemplateDetail {
+  id         String          @id @default(cuid())
+  templateId String
+  exerciseId String
+  sets       Int
+  reps       Int
+  weight     Float?
+  restTime   Int?
+  order      Int
+  exercise   Exercise        @relation(fields: [exerciseId], references: [id])
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([exerciseId])
+  @@map("workout_template_details")
+}
+
+model SavedTemplate {
+  id         String          @id @default(cuid())
+  templateId String
+  userId     String
+  createdAt  DateTime        @default(now())
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
+  @@index([templateId])
+  @@map("saved_templates")
+}
+
+model ActivityHistory {
+  id        String       @id @default(cuid())
+  userId    String
+  type      ActivityType
+  data      Json
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts     Post[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("activity_histories")
+}
+
+model BodyProgress {
+  id         String   @id @default(cuid())
+  userId     String
+  weight     Float?
+  height     Float?
+  photo      String?
+  recordedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([recordedAt])
+  @@map("body_progress")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  receiverId String
+  clubId     String?
+  type       NotificationType
+  data       Json?
+  createdAt  DateTime         @default(now())
+  readAt     DateTime?
+  club       Club?            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  receiver   User             @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId])
+  @@index([clubId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum ClubRole {
+  OWNER
+  MEMBER
+}
+
+enum ClubMemberStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  LEFT
+}
+
+enum ClubJoinPolicy {
+  OPEN
+  INVITE_ONLY
+}
+
+enum Visibility {
+  PUBLIC
+  FOLLOWERS_ONLY
+  PRIVATE
+}
+
+enum ActivityType {
+  RUNNING
+  WORKOUT
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  REJECTED
+  RESOLVED
+}
+
+enum NotificationType {
+  CLUB_ACTIVITY
+  NEW_FOLLOWER
+  NEW_WORKOUT_TEMPLATE
+  CLUB_INVITATION
+  NEW_MESSAGE
 }
