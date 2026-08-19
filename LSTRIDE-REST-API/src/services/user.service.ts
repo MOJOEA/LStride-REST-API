@@ -2,13 +2,12 @@ import { OAuth2Client } from "google-auth-library";
 
 import { prisma } from "../lib/prisma";
 
-
 export const getMe = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: {
       id: userId,
     },
-    select: { id: true, name: true, gender: true, email: true, description: true, profileImage: true,
+    select: { id: true, name: true, gender: true, email: true, bio: true, profileImage: true,
     _count: { select: { following: true, followers: true,},},
     },
   });
@@ -22,6 +21,8 @@ export const getMe = async (userId: string) => {
     name: user.name,
     gender: user.gender,
     email: user.email,
+    bio: user.bio,
+    profileImage: user.profileImage,
     followingCount: user._count.following,
     followerCount: user._count.followers,
   };
@@ -32,7 +33,6 @@ export const updateProfile = async (
   data: {
     name?: string;
     gender?: string;
-    Description?: string;
     bio?: string;
   },
   profileImage?: string
@@ -50,7 +50,6 @@ export const updateProfile = async (
       name: true,
       email: true,
       gender: true,
-      Description: true,
       bio: true,
       profileImage: true,
     },

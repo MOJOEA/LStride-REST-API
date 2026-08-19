@@ -1,5 +1,25 @@
 import { Request, Response } from "express";
-import { updateProfile } from "../../services/user.service";
+import { updateProfile, getMe } from "../services/user.service";
+
+export const getMeController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const user = await getMe(userId);
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    console.error("Get me error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 
 export const updateProfileController = async (
   req: Request,
@@ -17,7 +37,6 @@ export const updateProfileController = async (
       {
         name: req.body.name,
         gender: req.body.gender,
-        Description: req.body.Description,
         bio: req.body.bio,
       },
       profileImage
