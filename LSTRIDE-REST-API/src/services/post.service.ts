@@ -19,11 +19,23 @@ interface UpdatePostData {
   activityHistoryId?: string;
 }
 
-export const getPosts = async (limit: number) => {
+export const getPosts = async (limit: number, start: number) => {
   return prisma.post.findMany({
+    skip: start,
     take: limit,
+
     orderBy: {
       createdAt: "desc",
+    },
+
+    include: {
+      creator: {
+        select: { id: true, name: true, email: true, profileImage: true,},
+      },
+
+      _count: {
+        select: { likes: true, },
+      },
     },
   });
 };
@@ -32,6 +44,32 @@ export const getPostById = async (postId: string) => {
   return prisma.post.findUnique({
     where: {
       id: postId,
+    },
+    include: {
+      creator: {
+        select: { id: true, name: true, email: true, profileImage: true,},
+      },
+
+      _count: {
+        select: { likes: true, },
+      },
+    },
+  });
+};
+
+export const getPostClubById = async (clubId: string) => {
+  return prisma.post.findMany({
+    where: {
+      clubId,
+    },
+    include: {
+      creator: {
+        select: { id: true, name: true, email: true, profileImage: true,},
+      },
+
+      _count: {
+        select: { likes: true, },
+      },
     },
   });
 };

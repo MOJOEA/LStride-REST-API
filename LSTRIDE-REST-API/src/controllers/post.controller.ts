@@ -4,6 +4,7 @@ import {
     updatePost,
     getPosts,
     getPostById,
+    getPostClubById,
 } from "../services/post.service";
 
 export const createPostController = async (
@@ -125,10 +126,15 @@ export const getPostsController = async (
 ) => {
   try {
     const limitParam = req.query.limit;
+    const startParam = req.query.start;
 
     const limit = limitParam
       ? Number(limitParam)
       : 50;
+
+    const start = startParam
+      ? Number(startParam)
+      : 0;
 
     if (!Number.isInteger(limit) || limit < 1) {
       return res.status(400).json({
@@ -142,7 +148,13 @@ export const getPostsController = async (
       });
     }
 
-    const posts = await getPosts(limit);
+    if (!Number.isInteger(start) || start < 0) {
+      return res.status(400).json({
+        message: "Start must be a non-negative integer",
+      });
+    }
+
+    const posts = await getPosts(limit, start);
 
     return res.status(200).json({
       posts,
@@ -164,6 +176,33 @@ export const getPostByIdController = async (
     const { id } = req.params;
     // @ts-ignore
     const post = await getPostById(id);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    return res.status(200).json({
+      post,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Failed to get post",
+    });
+  }
+};
+
+export const getPostClubByIdController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+    // @ts-ignore
+    const post = await getPostClubById(id);
 
     if (!post) {
       return res.status(404).json({

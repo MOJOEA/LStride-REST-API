@@ -6,7 +6,15 @@ import { updateProfileController, getMeController } from "../controllers/user.co
 
 const router = Router();
 
-router.patch("/me",uploadProfileImage.single("profileImage"),updateProfileController);
-router.get("/me", getMeController);
+router.patch(
+    "/me",
+    uploadProfileImage.single("profileImage"),
+    updateProfileController
+);
+
+router.get(
+    "/me", 
+    getMeController
+);
 
 export default router;

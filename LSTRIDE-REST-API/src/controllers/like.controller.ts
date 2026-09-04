@@ -24,8 +24,7 @@ export const likePostController = async (
       message: "Post liked successfully",
     });
   } catch (error) {
-    // 🛠️ บังคับพ่นเอเรอร์ที่แท้จริงออกมาในหน้าจอ Terminal
-    console.error("❌ Error in likePostController:", error);
+    console.error("Error in likePostController:", error);
 
     if (error instanceof Error) {
       if (error.message === "POST_NOT_FOUND") {
@@ -66,8 +65,7 @@ export const unlikePostController = async (
       message: "Post unliked successfully",
     });
   } catch (error) {
-    // 🛠️ บังคับพ่นเอเรอร์ที่แท้จริงออกมาในหน้าจอ Terminal
-    console.error("❌ Error in unlikePostController:", error);
+    console.error("Error in unlikePostController:", error);
 
     if (error instanceof Error) {
       if (error.message === "LIKE_NOT_FOUND") {

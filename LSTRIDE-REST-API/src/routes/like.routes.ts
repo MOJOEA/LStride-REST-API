@@ -3,7 +3,13 @@ import { likePostController, unlikePostController } from "../controllers/like.co
 
 const router = Router();
 
-router.post("/:postId",likePostController);
-router.delete("/:postId",unlikePostController);
+router.post(
+    "/:postId",
+    likePostController
+);
+router.delete(
+    "/:postId",
+    unlikePostController
+);
 
 export default router;

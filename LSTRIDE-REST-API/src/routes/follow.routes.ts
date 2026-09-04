@@ -3,7 +3,14 @@ import { followUserController, unfollowUserController } from "../controllers/fol
 
 const router = Router();
 
-router.post("/:userid",followUserController);
-router.delete("/:userid", unfollowUserController);
+router.post(
+    "/:userid",
+    followUserController
+);
+
+router.delete(
+    "/:userid",
+    unfollowUserController
+);
 
 export default router;

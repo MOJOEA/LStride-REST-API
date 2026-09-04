@@ -35,6 +35,7 @@ model User {
   reports          Report[]
   savedTemplates   SavedTemplate[]
   workoutTemplates WorkoutTemplate[]
+  clubMemberHistories ClubMemberHistory[] 
 
   @@map("users")
 }
@@ -72,6 +73,7 @@ model Post {
 
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  
   comments        Comment[]
   likes           Like[]
   activityHistory ActivityHistory? @relation(fields: [activityHistoryId], references: [id])
@@ -162,6 +164,7 @@ model Club {
   creator       User           @relation("ClubCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   notifications Notification[]
   posts         Post[]
+  histories     ClubMemberHistory[] 
 
   @@index([creatorId])
   @@map("clubs")
@@ -172,7 +175,6 @@ model ClubMember {
   userId   String
   clubId   String
   role     ClubRole         @default(MEMBER)
-  status   ClubMemberStatus @default(ACTIVE)
   joinedAt DateTime         @default(now())
   club     Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -197,22 +199,52 @@ model ClubActivity {
   @@map("club_activities")
 }
 
+model ClubMemberHistory {
+  id        String   @id @default(cuid())
+
+  clubId    String
+  userId    String
+
+  action    ClubMemberHistoryAction
+
+  createdAt DateTime @default(now())
+
+  club      Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("club_member_history")
+}
+
+enum ClubMemberHistoryAction {
+  JOIN
+  LEAVE
+}
+
 model Exercise {
-  id              String                  @id @default(cuid())
-  name            String
-  equipment       String?
-  difficulty      String?
-  movement        String?
-  exerciseType    String?
-  primaryMuscle   String?
-  secondaryMuscle String?
-  exampleImage    String?
-  description     String?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  force            String?
+  level            String
+  mechanic         String?
+  equipment        String?
+  primaryMuscles   String[]
+  secondaryMuscles String[]
+  instructions     String[]
+  category         String
+  images           String[]
+
   templateDetails WorkoutTemplateDetail[]
 
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
   @@index([name])
+  @@index([level])
+  @@index([equipment])
+  @@index([category])
   @@map("exercises")
 }
 
@@ -247,6 +279,7 @@ model WorkoutTemplateDetail {
 
   @@index([templateId])
   @@index([exerciseId])
+  @@unique([templateId, exerciseId])
   @@map("workout_template_details")
 }
 
@@ -310,6 +343,7 @@ model Notification {
   @@map("notifications")
 }
 
+
 enum UserRole {
   USER
   ADMIN
@@ -324,13 +358,6 @@ enum UserStatus {
 enum ClubRole {
   OWNER
   MEMBER
-}
-
-enum ClubMemberStatus {
-  PENDING
-  ACTIVE
-  REJECTED
-  LEFT
 }
 
 enum ClubJoinPolicy {

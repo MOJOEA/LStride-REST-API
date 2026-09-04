@@ -13,6 +13,12 @@ import postRoutes from "./routes/post.routes";
 import likeRoutes from "./routes/like.routes";
 import commentRoutes from "./routes/comment.routes";
 
+import exerciseRoutes from "./routes/exercise.routes";
+import workoutTemplateRoutes from "./routes/workoutTemplate.routes";
+import workoutTemplateDetailRoutes from "./routes/workoutTemplateDetail.routes";
+
+import { clubRoutes } from  "./routes/club.routes";
+import clubMemberRoutes from "./routes/clubMember.routes";
 
 const app = express();
 
@@ -22,14 +28,64 @@ app.use("/uploads",express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/auth", authRoutes);
 app.get("/health", (req, res) => { res.json({ success: true, message: "API is running",});});
 
-app.use("/api/users",authMiddleware, userRoutes);
+app.use(
+    "/api/users",
+    authMiddleware,
+    userRoutes
+);
 
-app.use("/api/follow",authMiddleware, followRoutes);
+app.use(
+    "/api/follow",
+    authMiddleware,
+    followRoutes
+);
 
-app.use("/api/posts",authMiddleware, postRoutes);
+app.use(
+    "/api/posts",
+    authMiddleware,
+    postRoutes
+);
 
-app.use("/api/likes",authMiddleware, likeRoutes);
+app.use(
+    "/api/likes",
+    authMiddleware,
+    likeRoutes
+);
 
-app.use("/api/comments",authMiddleware, commentRoutes);
+app.use(
+    "/api/comments",
+    authMiddleware,
+    commentRoutes
+);
+
+app.use(
+    "/api/exercises",
+    authMiddleware,
+    exerciseRoutes
+);
+
+app.use(
+    "/api/workout-templates",
+    authMiddleware, 
+    workoutTemplateRoutes
+);
+
+app.use(
+  "/api/workout-template-details",
+  authMiddleware,
+  workoutTemplateDetailRoutes
+);
+
+app.use(
+    "/api/clubs", 
+    authMiddleware,
+    clubRoutes
+);
+
+app.use(
+    "/api/ClubMember",
+    authMiddleware,
+    clubMemberRoutes
+);
 
 export default app;
