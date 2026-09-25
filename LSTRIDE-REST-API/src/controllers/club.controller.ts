@@ -7,10 +7,7 @@ import {
   getClubById,
 } from "../services/club.service";
 
-export const createClubController = async (
-  req: Request,
-  res: Response
-) => {
+export const createClubController = async ( req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
 
