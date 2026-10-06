@@ -10,328 +10,158 @@ import {
 } from "../services/workoutTemplate.service";
 import { Visibility } from "@prisma/client";
 
+// ==========================================
+// 🛠️ HTTP Response Helper Functions
+// ==========================================
+const sendSuccess = (res: Response, data: any, statusCode = 200) => {
+  return res.status(statusCode).json(data);
+};
+
+const sendError = (res: Response, statusCode: number, message: string) => {
+  return res.status(statusCode).json({ message });
+};
+
+const handleControllerError = (res: Response, error: any, defaultMessage: string) => {
+  console.error(error);
+  const errorMessage = error?.message || "";
+
+  // ดักจับ Error เฉพาะเจาะจงจาก Service
+  if (errorMessage === "TEMPLATE_NOT_FOUND") {
+    return sendError(res, 404, "Workout template not found");
+  }
+  
+  if (errorMessage === "FORBIDDEN") {
+    return sendError(res, 403, defaultMessage.includes("get") 
+      ? "You do not have permission to view this template" 
+      : "You are not the creator of this template"
+    );
+  }
+
+  // หากเป็น Error อื่นๆ ส่ง 500
+  return sendError(res, 500, defaultMessage);
+};
+
+// ==========================================
+// 🎮 Controllers
+// ==========================================
+
 // ===============================
 // CREATE
 // ===============================
-
-export const createWorkoutTemplateController = async (
-  req: Request,
-  res: Response
-) => {
+export const createWorkoutTemplateController = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-
-    const {
-      name,
-      description,
-      visibility,
-    } = req.body;
+    const { name, description, visibility } = req.body;
 
     if (!name) {
-      return res.status(400).json({
-        message: "name is required",
-      });
+      return sendError(res, 400, "name is required");
     }
 
-    if (
-      visibility &&
-      !Object.values(Visibility).includes(visibility)
-    ) {
-      return res.status(400).json({
-        message: "Invalid visibility",
-      });
+    if (visibility && !Object.values(Visibility).includes(visibility)) {
+      return sendError(res, 400, "Invalid visibility");
     }
 
-    const template = await createWorkoutTemplate(
-      userId,
-      {
-        name,
-        description,
-        visibility,
-      }
-    );
-
-    return res.status(201).json(template);
+    const template = await createWorkoutTemplate(userId, { name, description, visibility });
+    return sendSuccess(res, template, 201);
   } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      message: "Failed to create workout template",
-    });
+    return handleControllerError(res, error, "Failed to create workout template");
   }
 };
 
 // ===============================
 // UPDATE
 // ===============================
-
-export const updateWorkoutTemplateController = async (
-  req: Request,
-  res: Response
-) => {
+export const updateWorkoutTemplateController = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
+    const { name, description, visibility } = req.body;
 
-    const {
-      name,
-      description,
-      visibility,
-    } = req.body;
-
-    if (
-      visibility &&
-      !Object.values(Visibility).includes(visibility)
-    ) {
-      return res.status(400).json({
-        message: "Invalid visibility",
-      });
+    if (visibility && !Object.values(Visibility).includes(visibility)) {
+      return sendError(res, 400, "Invalid visibility");
     }
 
-    const template = await updateWorkoutTemplate(
-      // @ts-ignore
-      id,
-      userId,
-      {
-        name,
-        description,
-        visibility,
-      }
-    );
-
-    return res.json(template);
-  } catch (error: any) {
-    console.error(error);
-
-    if (error.message === "TEMPLATE_NOT_FOUND") {
-      return res.status(404).json({
-        message: "Workout template not found",
-      });
-    }
-
-    if (error.message === "FORBIDDEN") {
-      return res.status(403).json({
-        message:
-          "You are not the creator of this template",
-      });
-    }
-
-    return res.status(500).json({
-      message: "Failed to update workout template",
-    });
+    // @ts-ignore
+    const template = await updateWorkoutTemplate(id, userId, { name, description, visibility });
+    return sendSuccess(res, template);
+  } catch (error) {
+    return handleControllerError(res, error, "Failed to update workout template");
   }
 };
 
 // ===============================
 // DELETE
 // ===============================
-
-export const deleteWorkoutTemplateController = async (
-  req: Request,
-  res: Response
-) => {
+export const deleteWorkoutTemplateController = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
 
-    const result = await deleteWorkoutTemplate(
-      // @ts-ignore
-      id,
-      userId
-    );
-
-    return res.json(result);
-  } catch (error: any) {
-    console.error(error);
-
-    if (error.message === "TEMPLATE_NOT_FOUND") {
-      return res.status(404).json({
-        message: "Workout template not found",
-      });
-    }
-
-    if (error.message === "FORBIDDEN") {
-      return res.status(403).json({
-        message:
-          "You are not the creator of this template",
-      });
-    }
-
-    return res.status(500).json({
-      message: "Failed to delete workout template",
-    });
+    // @ts-ignore
+    const result = await deleteWorkoutTemplate(id, userId);
+    return sendSuccess(res, result);
+  } catch (error) {
+    return handleControllerError(res, error, "Failed to delete workout template");
   }
 };
 
 // ===============================
 // GET PUBLIC + FOLLOWERS_ONLY
 // ===============================
+export const getPublicWorkoutTemplatesController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
 
-export const getPublicWorkoutTemplatesController =
-  async (
-    req: Request,
-    res: Response
-  ) => {
-    try {
-      const userId = req.user!.id;
-
-      const limit = Math.min(
-        Math.max(
-          Number(req.query.limit) || 20,
-          1
-        ),
-        100
-      );
-
-      const templates =
-        await getPublicWorkoutTemplates(
-          userId,
-          limit
-        );
-
-      return res.json({
-        limit,
-        count: templates.length,
-        data: templates,
-      });
-    } catch (error) {
-      console.error(error);
-
-      return res.status(500).json({
-        message:
-          "Failed to get workout templates",
-      });
-    }
-  };
+    const templates = await getPublicWorkoutTemplates(userId, limit);
+    return sendSuccess(res, { limit, count: templates.length, data: templates });
+  } catch (error) {
+    return handleControllerError(res, error, "Failed to get workout templates");
+  }
+};
 
 // ===============================
 // GET MY TEMPLATES
 // ===============================
+export const getMyWorkoutTemplatesController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
 
-export const getMyWorkoutTemplatesController =
-  async (
-    req: Request,
-    res: Response
-  ) => {
-    try {
-      const userId = req.user!.id;
-
-      const limit = Math.min(
-        Math.max(
-          Number(req.query.limit) || 20,
-          1
-        ),
-        100
-      );
-
-      const templates =
-        await getMyWorkoutTemplates(
-          userId,
-          limit
-        );
-
-      return res.json({
-        limit,
-        count: templates.length,
-        data: templates,
-      });
-    } catch (error) {
-      console.error(error);
-
-      return res.status(500).json({
-        message:
-          "Failed to get your workout templates",
-      });
-    }
-  };
+    const templates = await getMyWorkoutTemplates(userId, limit);
+    return sendSuccess(res, { limit, count: templates.length, data: templates });
+  } catch (error) {
+    return handleControllerError(res, error, "Failed to get your workout templates");
+  }
+};
 
 // ===============================
 // GET FOLLOWING TEMPLATES
 // ===============================
+export const getFollowingWorkoutTemplatesController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
 
-export const getFollowingWorkoutTemplatesController =
-  async (
-    req: Request,
-    res: Response
-  ) => {
-    try {
-      const userId = req.user!.id;
-
-      const limit = Math.min(
-        Math.max(
-          Number(req.query.limit) || 20,
-          1
-        ),
-        100
-      );
-
-      const templates =
-        await getFollowingWorkoutTemplates(
-          userId,
-          limit
-        );
-
-      return res.json({
-        limit,
-        count: templates.length,
-        data: templates,
-      });
-    } catch (error) {
-      console.error(error);
-
-      return res.status(500).json({
-        message:
-          "Failed to get following workout templates",
-      });
-    }
-  };
+    const templates = await getFollowingWorkoutTemplates(userId, limit);
+    return sendSuccess(res, { limit, count: templates.length, data: templates });
+  } catch (error) {
+    return handleControllerError(res, error, "Failed to get following workout templates");
+  }
+};
 
 // ===============================
 // GET BY ID
 // ===============================
+export const getWorkoutTemplateByIdController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
 
-export const getWorkoutTemplateByIdController =
-  async (
-    req: Request,
-    res: Response
-  ) => {
-    try {
-      const userId = req.user!.id;
-      const { id } = req.params;
-
-      const template =
-        await getWorkoutTemplateById(
-          // @ts-ignore
-          id,
-          userId
-        );
-
-      return res.json(template);
-    } catch (error: any) {
-      console.error(error);
-
-      if (
-        error.message ===
-        "TEMPLATE_NOT_FOUND"
-      ) {
-        return res.status(404).json({
-          message:
-            "Workout template not found",
-        });
-      }
-
-      if (
-        error.message === "FORBIDDEN"
-      ) {
-        return res.status(403).json({
-          message:
-            "You do not have permission to view this template",
-        });
-      }
-
-      return res.status(500).json({
-        message:
-          "Failed to get workout template",
-      });
-    }
-  };
+    // @ts-ignore
+    const template = await getWorkoutTemplateById(id, userId);
+    return sendSuccess(res, template);
+  } catch (error) {
+    return handleControllerError(res, error, "Failed to get workout template");
+  }
+};
